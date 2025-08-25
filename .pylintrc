@@ -1,5 +1,5 @@
 [MASTER]
-ignore-patterns=
+ignore=venv,.venv,env,.env,__pycache__
 
 [FORMAT]
 max-line-length=100
