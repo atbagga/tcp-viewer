@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "lint: pylint",
+      "type": "shell",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": ["$python"],
+      "command": "python",
+      "args": [
+        "-m",
+        "pylint",
+        "."
+      ],
+      "windows": {
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+        "args": [
+          "-m",
+          "pylint",
+          "."
+        ]
+      }
+    }
+  ]
+}
