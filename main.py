@@ -17,7 +17,7 @@ class Protocol:  # pylint: disable=too-few-public-methods
     TCPV6 = "tcp6"
     UDPV6 = "udp6"
 
-class TcpViewer:
+class TcpViewer:  # pylint: disable=too-many-instance-attributes
     """Viewer controller that populates a tree with current socket connections."""
 
     def __init__(self, root: tk.Tk, tree: ttk.Treeview) -> None:
@@ -77,16 +77,16 @@ class TcpViewer:
         """Resolve IP address to hostname with caching and very short timeout."""
         if not ip or ip in ("", "0.0.0.0", "127.0.0.1", "::1", "::", "localhost"):
             return ""
-        
+
         # Skip private/local IP ranges to avoid unnecessary lookups
-        if (ip.startswith("192.168.") or ip.startswith("10.") or 
+        if (ip.startswith("192.168.") or ip.startswith("10.") or
             ip.startswith("172.") or ip.startswith("169.254.")):
             return ""
-        
+
         # Check cache first
         if ip in self.hostname_cache:
             return self.hostname_cache[ip]
-        
+
         try:
             # Set a very short timeout for hostname resolution
             original_timeout = socket.getdefaulttimeout()
@@ -132,17 +132,17 @@ Examples:
 
 You can also type partial matches without prefixes.
 """
-        
+
         popup = tk.Toplevel(self.root)
         popup.title("Filter Help")
         popup.geometry("400x300")
-        
+
         text_widget = tk.Text(popup, wrap=tk.WORD, padx=10, pady=10)
         text_widget.pack(fill=tk.BOTH, expand=True)
         text_widget.insert("1.0", help_text)
         text_widget.config(state=tk.DISABLED)
 
-    def _on_search_change(self, event=None) -> None:
+    def _on_search_change(self, event=None) -> None:  # pylint: disable=unused-argument
         """Handle search box changes and apply filters."""
         self.current_filter = self.search_var.get().strip()
         self._apply_filter()
@@ -156,13 +156,13 @@ You can also type partial matches without prefixes.
 
         # Parse filter string
         filter_terms = self._parse_filter(self.current_filter)
-        
+
         # Filter the data
         filtered_data = []
         for row in self.displayed_data:
             if self._row_matches_filter(row, filter_terms):
                 filtered_data.append(row)
-        
+
         self.filtered_data = filtered_data
         self._display_data(filtered_data)
 
@@ -181,12 +181,12 @@ You can also type partial matches without prefixes.
             'family': 8,    # Family
             'type': 9       # Type
         }
-        
+
         filters = {}
-        
+
         # Split by spaces and process each term
         terms = filter_str.lower().split()
-        
+
         for term in terms:
             if ':' in term:
                 # Column-specific filter
@@ -196,7 +196,7 @@ You can also type partial matches without prefixes.
             else:
                 # General search across all columns
                 filters['general'] = term
-        
+
         return filters
 
     def _row_matches_filter(self, row: tuple, filters: dict) -> bool:
@@ -215,7 +215,7 @@ You can also type partial matches without prefixes.
                         return False
                 else:
                     return False
-        
+
         return True
 
     def _display_data(self, data: list) -> None:
@@ -223,11 +223,11 @@ You can also type partial matches without prefixes.
         # Clear tree
         self.tree.delete(*self.tree.get_children())
         self.highlighted_items.clear()
-        
+
         # Add filtered data
         for row_data in data:
             item_id = self.tree.insert("", "end", values=row_data)
-            
+
             # Check if this is a deleted, changed, or added entry and apply tags
             if any("(DELETED)" in str(val) for val in row_data):
                 self.tree.item(item_id, tags=("deleted",))
@@ -271,7 +271,8 @@ You can also type partial matches without prefixes.
 
     def _setup_column_sorting(self) -> None:
         """Set up click handlers for column headers to enable sorting."""
-        columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP", "RemotePort", "Hostname", "Status", "Family", "Type")
+        columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP",
+                   "RemotePort", "Hostname", "Status", "Family", "Type")
         for col in columns:
             # Initialize sort order to ascending
             self.sort_orders[col] = True
@@ -281,8 +282,9 @@ You can also type partial matches without prefixes.
     def _sort_by_column(self, col: str) -> None:
         """Sort the tree data by the specified column."""
         # Use filtered data if filter is active, otherwise use all displayed data
-        data_to_sort = self.filtered_data if self.current_filter and self.filtered_data else self.displayed_data
-        
+        data_to_sort = (self.filtered_data if self.current_filter and self.filtered_data
+                        else self.displayed_data)
+
         if not data_to_sort:
             return
 
@@ -338,11 +340,11 @@ You can also type partial matches without prefixes.
             if other_col != col:
                 self.tree.heading(other_col, text=other_col)
 
-    def update_connections(self) -> None:
+    def update_connections(self) -> None:  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Refresh the table with current connections across all protocols."""
         # Store previous data for comparison
         self.previous_data = self.connection_data.copy()
-        
+
         self.connection_data = []  # Reset the data store
         self.displayed_data = []  # Reset displayed data
 
@@ -358,7 +360,7 @@ You can also type partial matches without prefixes.
 
         # Process current connections
         current_keys = set()
-        
+
         for conn in connections:
             laddr = getattr(conn, "laddr", None)
             if not laddr:
@@ -412,15 +414,13 @@ You can also type partial matches without prefixes.
             # Resolve hostname for remote IP (if available) with safety checks
             hostname = self._resolve_hostname(remote_ip) if remote_ip else ""
 
-            row_data = (process_name, pid, local_ip, local_port, remote_ip, remote_port, hostname, status, family_name, sock_type_name)
-            
+            row_data = (process_name, pid, local_ip, local_port, remote_ip, remote_port,
+                        hostname, status, family_name, sock_type_name)
+
             # Track current connection key (using local IP and port for now)
             connection_key = (local_ip, local_port)
             current_keys.add(connection_key)
-            
-            # Check if this row is new or changed
-            change_type = self._get_change_type(row_data)
-            
+
             self.connection_data.append(row_data)
             self.displayed_data.append(row_data)
 
@@ -430,18 +430,19 @@ You can also type partial matches without prefixes.
                 prev_key = (prev_row[2], prev_row[3])  # LocalIP, LocalPort
                 if prev_key not in current_keys:
                     # This connection was deleted, add it to displayed data
-                    deleted_row = tuple(str(val) + " (DELETED)" if i == 0 else val 
+                    deleted_row = tuple(str(val) + " (DELETED)" if i == 0 else val
                                       for i, val in enumerate(prev_row))
                     self.displayed_data.append(deleted_row)
 
         # Reset column headers to remove sort indicators
-        columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP", "RemotePort", "Hostname", "Status", "Family", "Type")
+        columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP",
+                   "RemotePort", "Hostname", "Status", "Family", "Type")
         for col in columns:
             self.tree.heading(col, text=col)
-        
+
         # Apply current filter and display data
         self._apply_filter()
-        
+
         # Schedule removal of highlighting after 5 seconds
         if self.highlighted_items:
             self.root.after(5000, self._remove_highlighting)
@@ -451,10 +452,10 @@ You can also type partial matches without prefixes.
         if not self.previous_data:
             # First run, don't highlight anything
             return "existing"
-        
+
         # Create a unique key for comparison (LocalIP + LocalPort combination)
         new_key = (new_row[2], new_row[3])  # LocalIP, LocalPort
-        
+
         # Look for matching connection in previous data
         for prev_row in self.previous_data:
             prev_key = (prev_row[2], prev_row[3])  # LocalIP, LocalPort
@@ -462,9 +463,8 @@ You can also type partial matches without prefixes.
                 # Found matching connection, check if any values changed
                 if new_row != prev_row:
                     return "changed"
-                else:
-                    return "existing"
-        
+                return "existing"
+
         # New connection (not found in previous data)
         return "added"
 
@@ -473,25 +473,25 @@ You can also type partial matches without prefixes.
         if not self.previous_data:
             # First run, don't highlight anything
             return False
-        
+
         # Create a unique key for comparison (LocalIP + LocalPort combination)
         # This helps identify the same connection across refreshes
         new_key = (new_row[2], new_row[3])  # LocalIP, LocalPort
-        
+
         # Look for matching connection in previous data
         for prev_row in self.previous_data:
             prev_key = (prev_row[2], prev_row[3])  # LocalIP, LocalPort
             if new_key == prev_key:
                 # Found matching connection, check if any values changed
                 return new_row != prev_row
-        
+
         # New connection (not found in previous data)
         return True
 
     def _remove_highlighting(self) -> None:
         """Remove highlighting from all highlighted items and remove deleted entries."""
         items_to_remove = []
-        
+
         for item_id in self.highlighted_items:
             try:
                 # Check if item still exists (might have been deleted by sorting)
@@ -502,7 +502,7 @@ You can also type partial matches without prefixes.
                         # Remove deleted items from tree and displayed_data
                         items_to_remove.append(item_id)
                         # Remove from displayed_data
-                        self.displayed_data = [row for row in self.displayed_data 
+                        self.displayed_data = [row for row in self.displayed_data
                                              if not any("(DELETED)" in str(val) for val in row)]
                     else:
                         # Just remove highlighting for changed items
@@ -510,7 +510,7 @@ You can also type partial matches without prefixes.
             except tk.TclError:
                 # Item no longer exists, ignore
                 pass
-        
+
         # Remove deleted items from tree
         for item_id in items_to_remove:
             try:
@@ -518,7 +518,7 @@ You can also type partial matches without prefixes.
                     self.tree.delete(item_id)
             except tk.TclError:
                 pass
-        
+
         self.highlighted_items.clear()
 
     def refresh(self) -> None:
@@ -538,9 +538,10 @@ def create_gui() -> tuple[tk.Tk, ttk.Treeview]:
     root = tk.Tk()
     root.title("TCPViewer")
 
-    columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP", "RemotePort", "Hostname", "Status", "Family", "Type")
+    columns = ("Process", "ProcessId", "LocalIP", "LocalPort", "RemoteIP",
+               "RemotePort", "Hostname", "Status", "Family", "Type")
     tree = ttk.Treeview(root, columns=columns, show="headings")
-    
+
     # Set column widths for better display
     column_widths = {
         "Process": 150,
@@ -554,11 +555,11 @@ def create_gui() -> tuple[tk.Tk, ttk.Treeview]:
         "Family": 80,
         "Type": 80
     }
-    
+
     for col in columns:
         tree.heading(col, text=col)
         tree.column(col, width=column_widths.get(col, 100))
-    
+
     tree.pack(fill="both", expand=True)
     return root, tree
 
